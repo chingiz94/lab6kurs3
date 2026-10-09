@@ -1,6 +1,6 @@
 <?php
 /* Основные настройки */
-mysqli_report(MYSQLI_REPORT_OFF); // чтобы ошибки ловились через or die(...)
+mysqli_report(MYSQLI_REPORT_OFF);
 date_default_timezone_set('Asia/Almaty');
 
 define('DB_HOST', 'MySQL-8.4');
@@ -16,13 +16,16 @@ mysqli_set_charset($link, 'utf8');
 
 /* Сохранение записи в БД */
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-  $name  = mysqli_real_escape_string($link, trim(strip_tags($_POST['name'])));
-  $email = mysqli_real_escape_string($link, trim(strip_tags($_POST['email'])));
-  $msg   = mysqli_real_escape_string($link, trim(strip_tags($_POST['msg'])));
+  $name  = trim(strip_tags($_POST['name']));
+  $email = trim(strip_tags($_POST['email']));
+  $msg   = trim(strip_tags($_POST['msg']));
 
-  $sql = "INSERT INTO msgs (name, email, msg) VALUES ('$name', '$email', '$msg')";
-  mysqli_query($link, $sql)
-    or die('Ошибка добавления записи: ' . mysqli_error($link));
+  $stmt = mysqli_prepare($link, "INSERT INTO msgs (name, email, msg) VALUES (?, ?, ?)")
+    or die('Ошибка подготовки запроса: ' . mysqli_error($link));
+  mysqli_stmt_bind_param($stmt, 'sss', $name, $email, $msg);
+  mysqli_stmt_execute($stmt)
+    or die('Ошибка добавления записи: ' . mysqli_stmt_error($stmt));
+  mysqli_stmt_close($stmt);
 }
 /* Сохранение записи в БД */
 
@@ -30,9 +33,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 if (isset($_GET['del'])) {
   $del = (int)$_GET['del'];
   if ($del > 0) {
-    $sql = "DELETE FROM msgs WHERE id = $del";
-    mysqli_query($link, $sql)
-      or die('Ошибка удаления записи: ' . mysqli_error($link));
+    $stmt = mysqli_prepare($link, "DELETE FROM msgs WHERE id = ?")
+      or die('Ошибка подготовки запроса: ' . mysqli_error($link));
+    mysqli_stmt_bind_param($stmt, 'i', $del);
+    mysqli_stmt_execute($stmt)
+      or die('Ошибка удаления записи: ' . mysqli_stmt_error($stmt));
+    mysqli_stmt_close($stmt);
   }
 }
 /* Удаление записи из БД */
